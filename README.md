@@ -2,7 +2,7 @@
 
 ## 一、项目简介
 
-APS AI 助手是一个基于 Dify AI 的智能排产（Advanced Planning and Scheduling）业务问答系统，帮助企业用户通过自然语言与 APS 系统交互，完成插单评估和业务问答两大核心场景。
+APS AI 助手是一个基于 AI服务中台的智能排产（Advanced Planning and Scheduling）业务问答系统，帮助企业用户通过自然语言与 APS 系统交互，完成插单评估和业务问答两大核心场景。
 
 **核心功能：**
 - **插单评估**：用户提交插单需求 → APS 模拟运算 → AI 自动分析对现有订单的影响，生成评估报告
@@ -29,12 +29,12 @@ APS AI 助手是一个基于 Dify AI 的智能排产（Advanced Planning and Sch
 │                    AI 网关服务  (Port 8001)                          │
 │                       ai_gateway.py                                  │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  登录代理 → 会话管理 → 插单评估流程 → 业务问答（转发 Dify）       │ │
+│  │  登录代理 → 会话管理 → 插单评估流程 → 业务问答（转发 AI服务中台）       │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │          │                              │                             │
 │          ▼                              ▼                             │
 │  ┌──────────────────┐      ┌────────────────────────────────┐     │
-│  │  APS 模拟服务      │      │   Dify AI 服务                   │     │
+│  │  APS 模拟服务      │      │   AI服务中台                   │     │
 │  │  mock_server.py  │      │   /v1/chat-messages             │     │
 │  │  (Port 8000)     │      │   /v1/workflows/run            │     │
 │  └──────────────────┘      └────────────────────────────────┘     │
@@ -46,7 +46,7 @@ APS AI 助手是一个基于 Dify AI 的智能排产（Advanced Planning and Sch
 | 服务 | 文件 | 端口 | 说明 |
 |------|------|------|------|
 | APS 模拟服务 | `mock_server.py` | 8000 | 模拟企业 APS 后台，提供登录、插单、评估、报表等接口 |
-| AI 网关服务 | `ai_gateway.py` | 8001 | 代理 APS 调用 + Dify AI 转发，维护用户会话 |
+| AI 网关服务 | `ai_gateway.py` | 8001 | 代理 APS 调用 + AI服务中台转发，维护用户会话 |
 | 前端演示页面 | `demo.html` | 8002 | 集成 SDK 的双窗口演示页面（聊天 + 评估） |
 
 ---
@@ -87,7 +87,7 @@ APS AI 助手是一个基于 Dify AI 的智能排产（Advanced Planning and Sch
 ### 4.1 环境要求
 
 - Python 3.10+
-- 网络可访问 Dify 服务（`139.224.228.33:8090`）
+- 网络可访问 AI服务中台（`139.224.228.33:8090`）
 
 ### 4.2 安装依赖
 
@@ -117,7 +117,7 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 -m http.server 8002 \
 echo $! > /opt/aps/aps-client/demo_server.pid
 ```
 
-> ⚠️ **注意**：务必使用 `env http_proxy= https_proxy= no_proxy='*'` 取消代理，否则网关无法直连 Dify 服务。
+> ⚠️ **注意**：务必使用 `env http_proxy= https_proxy= no_proxy='*'` 取消代理，否则网关无法直连 AI服务中台。
 
 **验证服务状态：**
 
@@ -351,9 +351,9 @@ ApsAIChatWidget.mount('#eval-panel',  { mode: 'evaluate' })  // 插单评估
   ↓
 SDK: POST /ai/chat/stream
   ↓
-AI 网关：验证 Token，转发 Dify /chat-messages
+AI 网关：验证 Token，转发 AI服务中台 /chat-messages
   ↓
-Dify：解析意图 → 调用 APS 查询接口 → 整合结果生成回答
+AI服务中台：解析意图 → 调用 APS 查询接口 → 整合结果生成回答
   ↓
 流式返回 agent_message 事件（每个字一块）
   ↓
@@ -361,7 +361,7 @@ Dify：解析意图 → 调用 APS 查询接口 → 整合结果生成回答
   ↓
 SDK：onChunk 回调，打字机效果展示
   ↓
-Dify：返回 message_end 事件
+AI服务中台：返回 message_end 事件
   ↓
 SDK：onDone 回调，携带 conversationId 供追问
 ```
@@ -401,17 +401,17 @@ await ApsAI.chat('哪个最紧急？', {
   ↓
 SDK: POST /ai/rush-order/evaluate/start
   ↓
-AI 网关 → APS: GET /rush-order-evaluate（触发异步运算）
+AI 网关 → APS: GET /api/aps/rush-order-evaluate（触发异步运算）
   ↓
 SDK 轮询 GET /ai/rush-order/evaluate/status/{taskId}
   ↓
-APS: GET /rush-order-evaluate/warning → data=null（运算完成）
+APS: GET /api/aps/rush-order-evaluate/warning → data=null（运算完成）
   ↓
-网关自动拉取：POST /rush-order/paging + POST /affect-order/paging
+网关自动拉取：POST /api/aps/rush-order/paging + POST /api/aps/affect-order/paging
   ↓
 SDK: POST /ai/rush-order/evaluate/analyze/{taskId}/stream
   ↓
-Dify Workflow A：分析 rush_order + affect_order 两张表
+AI服务工作流：分析 rush_order + affect_order 两张表
   ↓
 流式返回 AI 分析报告 → SDK 展示
   ↓
@@ -493,13 +493,13 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
 
 ### Q3: 流式响应出现乱码或 JSON 解析失败
 
-**原因**：Dify 返回的 SSE 行结束符为 `\r\n`，未正确处理。
+**原因**：AI服务中台返回的 SSE 行结束符为 `\r\n`，未正确处理。
 
 **解决**：已修复，参考 `ai_gateway.py` 中的 `raw_line = line.rstrip('\r')`。
 
 ### Q4: 插单评估正常但 AI 报告为空
 
-**原因**：`evaluate_analyze_stream` 未正确处理 Dify workflow 的 `text_chunk` 和 `workflow_finished` 事件。
+**原因**：`evaluate_analyze_stream` 未正确处理 AI服务工作流的 `text_chunk` 和 `workflow_finished` 事件。
 
 **解决**：确认 `ai_gateway.py` 中同时处理了：
 - `t == "text_chunk"` → yield chunk
@@ -554,7 +554,7 @@ tail -f /opt/aps/aps-mock/server.log
 
 网关 `chat_stream` 函数内置了详细的调试日志，包含：
 - 收到请求的完整信息
-- Dify 返回状态码
+- AI服务中台返回状态码
 - 每种事件的处理计数
 - `agent_thought` 事件（AI 思考过程）
 - 异常栈信息

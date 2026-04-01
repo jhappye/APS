@@ -4,8 +4,8 @@ APS AI 网关服务 V2
 ==================
 基于真实接口重写，核心变化：
 1. 新增登录代理：客户端通过网关登录，网关维护 APS token
-2. 插单评估流程：触发评估 → 轮询 warning → 查两张表 → 调 Dify
-3. 业务问答：直接转发到 Dify
+2. 插单评估流程：触发评估 → 轮询 warning → 查两张表 → 调 AI服务中台
+3. 业务问答：直接转发到 AI服务中台
 """
 
 from fastapi import FastAPI, Header, HTTPException, BackgroundTasks
@@ -23,9 +23,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ─── 配置 ───────────────────────────────────────────────
 APS_BASE_URL        = "http://localhost:8000"            # APS 服务地址（测试用模拟服务）
-DIFY_BASE_URL       = "http://139.224.228.33:8090/v1"              # Dify 内部地址
-DIFY_API_KEY        = "app-NMXnjStbZL4uA5ufO7CCjOq7"     # ← 聊天机器人 API Key（业务问答用）
-DIFY_WORKFLOW_A_KEY = "app-20mcGFNUbrVe8UjiZkttDefU"     # ← 工作流A的 API Key（插单评估专用）
+AI_PLATFORM_BASE_URL = "http://139.224.228.33:8090/v1"              # AI服务中台地址
+AI_PLATFORM_CHAT_KEY = "app-NMXnjStbZL4uA5ufO7CCjOq7"     # ← 聊天机器人 API Key（业务问答用）
+AI_PLATFORM_WORKFLOW_KEY = "app-20mcGFNUbrVe8UjiZkttDefU"     # ← 工作流 API Key（插单评估专用）
 GATEWAY_TOKEN       = "aps-gateway-token-2026"           # ← 客户调用网关时用的 Token
 
 # ─── 内存存储 ────────────────────────────────────────────
@@ -192,7 +192,7 @@ async def evaluate_analyze(task_id: str, authorization: str = Header("")):
         raise HTTPException(400, {"code": "NOT_READY", "message": "评估尚未完成，请先轮询 status 接口"})
 
     # 调工作流A的 Run API（blocking 模式）
-    dify_payload = {
+    ai_payload = {
         "inputs": {
             "rush_order_body":   task.get("rush_body", "{}"),
             "affect_order_body": task.get("affect_body", "{}"),
@@ -203,17 +203,17 @@ async def evaluate_analyze(task_id: str, authorization: str = Header("")):
 
     async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(
-            f"{DIFY_BASE_URL}/workflows/run",
-            headers={"Authorization": f"Bearer {DIFY_WORKFLOW_A_KEY}", "Content-Type": "application/json"},
-            json=dify_payload,
+            f"{AI_PLATFORM_BASE_URL}/workflows/run",
+            headers={"Authorization": f"Bearer {AI_PLATFORM_WORKFLOW_KEY}", "Content-Type": "application/json"},
+            json=ai_payload,
         )
 
     if resp.status_code != 200:
-        raise HTTPException(502, {"code": "DIFY_ERROR", "message": f"Dify 工作流返回 {resp.status_code}: {resp.text[:300]}"})
+        raise HTTPException(502, {"code": "AI_ERROR", "message": f"AI服务中台工作流返回 {resp.status_code}: {resp.text[:300]}"})
 
-    dify_data = resp.json()
+    ai_data = resp.json()
     # 工作流 Run API 返回结构：data.outputs 里有工作流结束节点的输出变量
-    outputs = dify_data.get("data", {}).get("outputs", {})
+    outputs = ai_data.get("data", {}).get("outputs", {})
     answer = outputs.get("answer") or outputs.get("text") or str(outputs)
 
     return ok(data={
@@ -238,7 +238,7 @@ async def evaluate_analyze_stream(task_id: str, authorization: str = Header(""))
     if task["status"] != "completed":
         raise HTTPException(400, {"code": "NOT_READY", "message": "评估尚未完成"})
 
-    dify_payload = {
+    ai_payload = {
         "inputs": {
             "rush_order_body":   task.get("rush_body", "{}"),
             "affect_order_body": task.get("affect_body", "{}"),
@@ -251,13 +251,13 @@ async def evaluate_analyze_stream(task_id: str, authorization: str = Header(""))
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 async with client.stream(
-                    "POST", f"{DIFY_BASE_URL}/workflows/run",
-                    headers={"Authorization": f"Bearer {DIFY_WORKFLOW_A_KEY}", "Content-Type": "application/json"},
-                    json=dify_payload,
+                    "POST", f"{AI_PLATFORM_BASE_URL}/workflows/run",
+                    headers={"Authorization": f"Bearer {AI_PLATFORM_WORKFLOW_KEY}", "Content-Type": "application/json"},
+                    json=ai_payload,
                 ) as resp:
                     if resp.status_code != 200:
                         body = await resp.aread()
-                        yield f"data: {json.dumps({'type':'error','message':f'Dify工作流返回{resp.status_code}','detail':body.decode()[:300]}, ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps({'type':'error','message':f'AI服务工作流返回{resp.status_code}','detail':body.decode()[:300]}, ensure_ascii=False)}\n\n"
                         return
                     async for line in resp.aiter_lines():
                         if not line.startswith("data: "):
@@ -304,7 +304,7 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
     verify_gateway_token(authorization)
     session = sessions[authorization.replace("Bearer ", "").strip()]
 
-    dify_payload = {
+    ai_payload = {
         "query":           req.message,
         "user":            req.userId or session["userId"] or "gateway_user",
         "response_mode":   "streaming",
@@ -316,23 +316,23 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
 
     async def generate():
         try:
-            print(f"[CHAT] 正在转发到 Dify: {DIFY_BASE_URL}/chat-messages")
+            print(f"[CHAT] 正在转发到 AI服务中台: {AI_PLATFORM_BASE_URL}/chat-messages")
             async with httpx.AsyncClient(timeout=120) as client:
                 async with client.stream(
-                    "POST", f"{DIFY_BASE_URL}/chat-messages",
-                    headers={"Authorization": f"Bearer {DIFY_API_KEY}", "Content-Type": "application/json"},
-                    json=dify_payload,
+                    "POST", f"{AI_PLATFORM_BASE_URL}/chat-messages",
+                    headers={"Authorization": f"Bearer {AI_PLATFORM_CHAT_KEY}", "Content-Type": "application/json"},
+                    json=ai_payload,
                 ) as resp:
-                    print(f"[CHAT] Dify 返回状态: {resp.status_code}")
+                    print(f"[CHAT] AI服务中台返回状态: {resp.status_code}")
                     if resp.status_code != 200:
                         body = await resp.aread()
-                        print(f"[CHAT] Dify 错误: {body.decode()[:500]}")
-                        yield f"data: {json.dumps({'type':'error','message':f'Dify {resp.status_code}','detail':body.decode()[:300]}, ensure_ascii=False)}\n\n"
+                        print(f"[CHAT] AI服务中台错误: {body.decode()[:500]}")
+                        yield f"data: {json.dumps({'type':'error','message':f'AI服务 {resp.status_code}','detail':body.decode()[:300]}, ensure_ascii=False)}\n\n"
                         return
                     conv_id = ""
                     event_count = {"chunk": 0, "done": 0, "error": 0, "other": 0}
                     async for line in resp.aiter_lines():
-                        # 去掉行尾的\r（Dify可能发送\r\n换行）
+                        # 去掉行尾的\r（AI服务中台可能发送\r\n换行）
                         raw_line = line.rstrip('\r')
                         if not raw_line.startswith("data: "):
                             continue
@@ -358,7 +358,7 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
                                 yield f"data: {json.dumps({'type':'done','conversationId':conv_id}, ensure_ascii=False)}\n\n"
                             elif t == "error":
                                 event_count["error"] += 1
-                                print(f"[CHAT] 收到 Dify error 事件: {event.get('message','')}")
+                                print(f"[CHAT] 收到 AI服务中台 error 事件: {event.get('message','')}")
                                 yield f"data: {json.dumps({'type':'error','message':event.get('message','')}, ensure_ascii=False)}\n\n"
                             elif t == "agent_thought":
                                 # 调试：打印 AI 思考过程
@@ -380,9 +380,6 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
 
-    return StreamingResponse(generate(), media_type="text/event-stream",
-                             headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
-
 
 @app.post("/ai/chat")
 async def chat_blocking(req: ChatRequest, authorization: str = Header("")):
@@ -390,7 +387,7 @@ async def chat_blocking(req: ChatRequest, authorization: str = Header("")):
     verify_gateway_token(authorization)
     session = sessions[authorization.replace("Bearer ", "").strip()]
 
-    dify_payload = {
+    ai_payload = {
         "query":           req.message,
         "user":            req.userId or session["userId"] or "gateway_user",
         "response_mode":   "blocking",
@@ -398,12 +395,12 @@ async def chat_blocking(req: ChatRequest, authorization: str = Header("")):
         "conversation_id": req.conversationId or "",
     }
     async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(f"{DIFY_BASE_URL}/chat-messages",
-            headers={"Authorization": f"Bearer {DIFY_API_KEY}", "Content-Type": "application/json"},
-            json=dify_payload)
+        resp = await client.post(f"{AI_PLATFORM_BASE_URL}/chat-messages",
+            headers={"Authorization": f"Bearer {AI_PLATFORM_CHAT_KEY}", "Content-Type": "application/json"},
+            json=ai_payload)
 
     if resp.status_code != 200:
-        raise HTTPException(502, {"code": "DIFY_ERROR", "message": f"Dify 返回 {resp.status_code}"})
+        raise HTTPException(502, {"code": "AI_ERROR", "message": f"AI服务中台返回 {resp.status_code}"})
 
     d = resp.json()
     return ok(data={"answer": d.get("answer",""), "conversationId": d.get("conversation_id","")})
@@ -415,8 +412,8 @@ async def clear_conversation(conv_id: str, userId: str = "", authorization: str 
     verify_gateway_token(authorization)
     session = sessions[authorization.replace("Bearer ", "").strip()]
     async with httpx.AsyncClient(timeout=15) as client:
-        await client.delete(f"{DIFY_BASE_URL}/conversations/{conv_id}",
-            headers={"Authorization": f"Bearer {DIFY_API_KEY}"},
+        await client.delete(f"{AI_PLATFORM_BASE_URL}/conversations/{conv_id}",
+            headers={"Authorization": f"Bearer {AI_PLATFORM_CHAT_KEY}"},
             params={"user": userId or session["userId"]})
     return ok(data={"cleared": True})
 

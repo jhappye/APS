@@ -161,7 +161,7 @@ total = len(results)
 passed = sum(1 for _, ok in results if ok)
 failed = total - passed
 print(f"\n  总计：{total} 项  通过：{passed} {PASS}  失败：{failed} {FAIL if failed else ''}")
-print(f"\n  {'🎉 全部通过！可以对接 Dify 工作流。' if failed == 0 else '⚠️ 有失败项，请检查服务。'}")
+print(f"\n  {'🎉 全部通过！可以对接 AI服务工作流。' if failed == 0 else '⚠️ 有失败项，请检查服务。'}")
 if failed:
     print("\n  失败项：")
     for name, ok in results:

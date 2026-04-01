@@ -14,7 +14,7 @@ APS AI 助手 is an AI-powered Advanced Planning and Scheduling assistant system
 ```
 Client Browser
     │
-    ├─→ ai_gateway.py (port 8001) ──→ Dify AI Service (external)
+    ├─→ ai_gateway.py (port 8001) ──→ AI服务中台 (external)
     │         │
     │         └─→ mock_server.py (port 8000) ──→ Mock APS Backend
     │                                              (simulates enterprise APS system)
@@ -25,7 +25,7 @@ Client Browser
 | Service | File | Port | Purpose |
 |---------|------|------|---------|
 | Mock APS Server | `aps-mock/mock_server.py` | 8000 | Simulates enterprise APS backend (login, rush orders, evaluation) |
-| AI Gateway | `aps-mock/ai_gateway.py` | 8001 | Proxies APS calls + Dify AI, manages sessions |
+| AI Gateway | `aps-mock/ai_gateway.py` | 8001 | Proxies APS calls + AI服务中台, manages sessions |
 
 ### Key API Flows
 
@@ -33,10 +33,10 @@ Client Browser
 1. Client → `POST /ai/login` (gateway) → APS login
 2. Client → `POST /ai/rush-order/evaluate/start` → triggers APS evaluation
 3. Client polls `GET /ai/rush-order/evaluate/status/{taskId}` until "completed"
-4. Client → `POST /ai/rush-order/evaluate/analyze/{taskId}/stream` → gets AI report via Dify workflow
+4. Client → `POST /ai/rush-order/evaluate/analyze/{taskId}/stream` → gets AI report via AI服务工作流
 
 **Business Chat Flow:**
-1. Client → `POST /ai/chat/stream` → streams AI responses via Dify chat-messages API
+1. Client → `POST /ai/chat/stream` → streams AI responses via AI服务中台 chat-messages API
 
 ## Commands
 
