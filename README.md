@@ -58,6 +58,10 @@ APS AI 助手是一个基于 Dify AI 的智能排产（Advanced Planning and Sch
 ├── README.md                        # 本文档
 ├── CLAUDE.md                        # Claude Code 开发指南
 │
+├── docs/                            # 接入文档
+│   ├── 客户接入指南.md              # 客户方接入指南（供客户阅读）
+│   └── AI服务改造手册.md            # AI 服务部署改造手册（供我方运维/开发阅读）
+│
 ├── aps-mock/                        # 后端服务（Python + FastAPI）
 │   ├── ai_gateway.py               # AI 网关服务（端口 8001）
 │   ├── mock_server.py               # APS 模拟服务（端口 8000）
