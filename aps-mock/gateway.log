@@ -1,0 +1,155 @@
+INFO:     Started server process [177826]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     192.168.253.1:10543 - "POST /ai/login HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单RO20260329005' userId=test conversationId=
+INFO:     192.168.253.1:13492 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+INFO:     Started server process [178519]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8001): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Started server process [178767]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49004 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49016 - "POST /ai/chat HTTP/1.1" 502 Bad Gateway
+INFO:     127.0.0.1:35930 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35944 - "POST /ai/chat HTTP/1.1" 502 Bad Gateway
+INFO:     192.168.253.1:9539 - "OPTIONS /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:9539 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1167 - "OPTIONS /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1167 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1167 - "OPTIONS /ai/rush-order/evaluate/status/eval_4bed16a1 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:11135 - "GET /ai/rush-order/evaluate/status/eval_4bed16a1 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:11135 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_4bed16a1/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1167 - "POST /ai/rush-order/evaluate/analyze/eval_4bed16a1/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:8224 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13327 - "OPTIONS /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单 SO20250001 进度' userId=1001 conversationId=
+INFO:     192.168.253.1:13327 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+INFO:     192.168.253.1:12474 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:12474 - "OPTIONS /ai/rush-order/evaluate/status/eval_593b2c54 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:12474 - "GET /ai/rush-order/evaluate/status/eval_593b2c54 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:12474 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_593b2c54/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:9600 - "POST /ai/rush-order/evaluate/analyze/eval_593b2c54/stream HTTP/1.1" 200 OK
+[CHAT] Dify 返回状态: 400
+[CHAT] Dify 错误: {"code":"invalid_param","message":"Failed to request plugin daemon, url: plugin\/3189d528-bc97-414f-bf70-c45a804e7161\/management\/models","status":400}
+
+INFO:     127.0.0.1:50658 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58994 - "POST /ai/login HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='hi' userId=test conversationId=
+INFO:     127.0.0.1:58996 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+[CHAT] Dify 返回状态: 200
+[CHAT] agent_thought: tool= thought=
+INFO:     127.0.0.1:52110 - "POST /ai/login HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单SO20250001进度' userId=test conversationId=
+INFO:     127.0.0.1:52120 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+[CHAT] Dify 返回状态: 200
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 收到 message_end, conv_id=433be1e8-9e2f-42a3-ba66-ff2ca7a13e6c, event_count={'chunk': 1, 'done': 1, 'error': 0, 'other': 0}
+INFO:     192.168.253.1:13400 - "OPTIONS /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13400 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13400 - "OPTIONS /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:3257 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:3257 - "OPTIONS /ai/rush-order/evaluate/status/eval_3c7940f2 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13400 - "GET /ai/rush-order/evaluate/status/eval_3c7940f2 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13400 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_3c7940f2/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:3257 - "POST /ai/rush-order/evaluate/analyze/eval_3c7940f2/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:7756 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:3257 - "OPTIONS /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单 SO20250001 进度' userId=1001 conversationId=
+INFO:     192.168.253.1:7756 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+[CHAT] Dify 返回状态: 200
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 收到 message_end, conv_id=26ca2faf-cb00-4900-bc97-5005ea5f803b, event_count={'chunk': 195, 'done': 1, 'error': 0, 'other': 0}
+INFO:     192.168.253.1:1822 - "OPTIONS /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1822 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:14273 - "OPTIONS /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:14273 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:14273 - "OPTIONS /ai/rush-order/evaluate/status/eval_7a113405 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1523 - "GET /ai/rush-order/evaluate/status/eval_7a113405 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1523 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_7a113405/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:14273 - "POST /ai/rush-order/evaluate/analyze/eval_7a113405/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13991 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:13991 - "OPTIONS /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单 SO20250001 进度' userId=1001 conversationId=
+INFO:     192.168.253.1:13991 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+[CHAT] Dify 返回状态: 200
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 收到 message_end, conv_id=65557d73-1342-4145-8cc7-639992968a53, event_count={'chunk': 110, 'done': 1, 'error': 0, 'other': 0}
+INFO:     192.168.253.1:2316 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:2316 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:2316 - "OPTIONS /ai/rush-order/evaluate/status/eval_ea2e1d0d HTTP/1.1" 200 OK
+INFO:     192.168.253.1:2316 - "GET /ai/rush-order/evaluate/status/eval_ea2e1d0d HTTP/1.1" 200 OK
+INFO:     192.168.253.1:2316 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_ea2e1d0d/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:9515 - "POST /ai/rush-order/evaluate/analyze/eval_ea2e1d0d/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:10303 - "POST /ai/login HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单 SO20250001 进度' userId=1001 conversationId=
+INFO:     192.168.253.1:8627 - "POST /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 正在转发到 Dify: http://139.224.228.33:8090/v1/chat-messages
+[CHAT] Dify 返回状态: 200
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help you
+[CHAT] agent_thought: tool=business_res thought=I am thinking about how to help youI am thinking about how to help you
+[CHAT] agent_thought: tool= thought=
+[CHAT] 跳过空的 agent_message, answer=''
+[CHAT] 收到 message_end, conv_id=8ce79379-e099-405e-8e79-c9cacc982cf9, event_count={'chunk': 136, 'done': 1, 'error': 0, 'other': 0}
+INFO:     192.168.253.1:1849 - "OPTIONS /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1849 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1849 - "OPTIONS /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:10119 - "POST /ai/rush-order/evaluate/start HTTP/1.1" 200 OK
+INFO:     192.168.253.1:10119 - "OPTIONS /ai/rush-order/evaluate/status/eval_3114d826 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1849 - "GET /ai/rush-order/evaluate/status/eval_3114d826 HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1849 - "OPTIONS /ai/rush-order/evaluate/analyze/eval_3114d826/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:10119 - "POST /ai/rush-order/evaluate/analyze/eval_3114d826/stream HTTP/1.1" 200 OK
+INFO:     192.168.253.1:1849 - "POST /ai/login HTTP/1.1" 200 OK
+INFO:     192.168.253.1:7725 - "OPTIONS /ai/chat/stream HTTP/1.1" 200 OK
+[CHAT] 收到请求: message='查询订单 SO20250001 进度' userId=1001 conversationId=
+INFO:     192.168.253.1:7725 - "POST /ai/chat/stream HTTP/1.1" 200 OK

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APS AI 助手 · 接入示例 V2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; gap: 24px; }
+  .panel { width: 420px; height: 640px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); border-radius: 12px; overflow: hidden; }
+  .label { text-align: center; font-size: 13px; color: #6b7280; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- 窗口一：业务问答模式 -->
+<div>
+  <p class="label">业务问答（自然语言查询）</p>
+  <div class="panel" id="chat-panel"></div>
+</div>
+
+<!-- 窗口二：插单评估模式 -->
+<div>
+  <p class="label">插单评估（触发评估 + AI 报告）</p>
+  <div class="panel" id="eval-panel"></div>
+</div>
+
+<!-- SDK 配置（必须写在 aps-ai-sdk.js 之前）-->
+<script>
+  window.APS_CONFIG = {
+    BASE_URL: 'http://192.168.253.128:8001'  // ← 改成你的网关地址
+  }
+</script>
+<script src="aps-ai-sdk.js"></script>
+<script>
+  // ── 初始化两个窗口 ──────────────────────────
+  // 业务问答窗口：自动弹出登录，登录后进入问答模式
+  ApsAIChatWidget.mount('#chat-panel', { mode: 'chat' })
+
+  // 插单评估窗口：使用同一个 ApsAI 实例（登录状态共享）
+  ApsAIChatWidget.mount('#eval-panel', { mode: 'evaluate' })
+</script>
+
+</body>
+</html>
