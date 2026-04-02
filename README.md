@@ -229,9 +229,10 @@ curl http://localhost:8000/
 |--------|--------|------|
 | `MOCK_MODE` | `true` | 模式切换：`true`=模拟模式，`false`=生产模式 |
 | `APS_BASE_URL` | `http://localhost:8000` | APS 服务地址（生产模式使用） |
+| `REPORT_BASE_URL` | `http://localhost:8000` | 报表服务地址，默认使用 APS_BASE_URL |
 | `AI_PLATFORM_BASE_URL` | `http://139.224.228.33:8090/v1` | AI服务中台地址 |
-| `AI_PLATFORM_CHAT_KEY` | - | 业务问答 Key（必填） |
-| `AI_PLATFORM_WORKFLOW_KEY` | - | 插单评估 Key（必填） |
+| `AI_PLATFORM_CHAT_KEY` | - | 业务问答 Key（生产模式必填） |
+| `AI_PLATFORM_WORKFLOW_KEY` | - | 插单评估 Key（生产模式必填） |
 | `LOG_LEVEL` | `INFO` | 日志级别：DEBUG, INFO, WARNING, ERROR |
 
 ---
@@ -260,7 +261,8 @@ http://192.168.253.128:8002/demo.html
 <!-- 1. 配置网关地址（必须写在 aps-ai-sdk.js 之前）-->
 <script>
   window.APS_CONFIG = {
-    BASE_URL: 'http://192.168.253.128:8000'  // ← 改成你的统一服务地址
+    BASE_URL: 'http://192.168.253.128:8000',  // ← 改成你的统一服务地址
+    REPORT_BASE_URL: 'http://192.168.253.128:8000'  // ← 改成你的报表服务地址（可选）
   }
 </script>
 
@@ -277,9 +279,9 @@ http://192.168.253.128:8002/demo.html
 </script>
 ```
 
-> 默认值（未配置时）：`http://localhost:8000`
+> 默认值（未配置时）：`BASE_URL = http://localhost:8000`
 >
-> 报表页面地址从 `BASE_URL` 自动推导，例如 `BASE_URL: 'http://x:8000'` → 报表地址 `http://x:8000/report`
+> 报表地址优先使用 `REPORT_BASE_URL`，未配置则从 `BASE_URL` 推导：`http://x:8000` → `http://x:8000/api/report`
 
 ### 5.3 ApsAI 核心 API
 
@@ -420,7 +422,7 @@ ApsAIChatWidget.mount('#eval-panel',  { mode: 'evaluate' })  // 插单评估
 | `/api/aps/shortage` | GET | 缺料预警查询（无需 Token） |
 | `/api/aps/capacity` | GET | 产能负荷查询（无需 Token） |
 | `/api/aps/risk` | GET | 交期风险查询（无需 Token） |
-| `/report` | GET | 插单评估报表页面（HTML） |
+| `/api/report` | GET | 插单评估明细报表（HTML，含真实数据） |
 
 ### 7.3 健康检查接口
 
@@ -529,17 +531,20 @@ await ApsAI.evaluateRushOrders({
 
 ```javascript
 window.APS_CONFIG = {
-  BASE_URL: 'http://192.168.253.128:8000'  // 统一服务地址（端口 8000）
+  BASE_URL: 'http://192.168.253.128:8000',  // 统一服务地址（必填）
+  REPORT_BASE_URL: 'http://192.168.253.128:8000'  // 报表服务地址（可选，默认使用 BASE_URL）
 }
 ```
 
-### 10.2 地址自动推导规则
+### 10.2 地址推导规则
 
-| BASE_URL | 报表地址 | 说明 |
-|----------|----------|------|
-| `http://x:8000` | `http://x:8000/report` | 统一服务 |
-| `https://x.com:8443` | `https://x.com:8443/report` | 端口不变 |
-| `http://x.com` | `http://x.com/report` | 默认端口 80 |
+| BASE_URL | 报表地址（无 REPORT_BASE_URL 时） | 说明 |
+|----------|-----------------------------------|------|
+| `http://x:8000` | `http://x:8000/api/report` | 统一服务 |
+| `https://x.com:8443` | `https://x.com:8443/api/report` | 端口不变 |
+| `http://x.com` | `http://x.com/api/report` | 默认端口 80 |
+
+**优先使用 REPORT_BASE_URL**：如果配置了 `REPORT_BASE_URL`，报表地址直接使用该值，不再从 BASE_URL 推导。
 
 ### 10.3 CORS 跨域
 
