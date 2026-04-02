@@ -133,18 +133,35 @@ docker compose down
 docker compose restart
 ```
 
-**环境变量配置（可选）**：
+**环境变量配置**：
 
-创建 `.env` 文件或使用环境变量：
+创建 `.env` 文件：
 
 ```bash
 # .env 文件示例
-MOCK_MODE=true
+MOCK_MODE=true          # true=模拟模式，false=生产模式
 APS_BASE_URL=http://localhost:8000
 AI_PLATFORM_BASE_URL=http://139.224.228.33:8090/v1
-AI_PLATFORM_CHAT_KEY=your_chat_key_here
-AI_PLATFORM_WORKFLOW_KEY=your_workflow_key_here
+AI_PLATFORM_CHAT_KEY=your_chat_key_here      # 生产模式必填
+AI_PLATFORM_WORKFLOW_KEY=your_workflow_key_here  # 生产模式必填
 LOG_LEVEL=INFO
+```
+
+**模式切换说明**：
+
+| 模式 | MOCK_MODE | 说明 |
+|------|-----------|------|
+| 模拟模式（开发测试） | `true` | 使用内置模拟数据，AI 接口返回模拟响应 |
+| 生产模式（客户部署） | `false` | 调用真实 APS 和 AI服务中台 |
+
+切换到生产模式：
+```bash
+# 方式1：修改 .env 文件
+echo "MOCK_MODE=false" >> .env
+docker compose up -d
+
+# 方式2：运行时设置环境变量
+MOCK_MODE=false docker compose up -d
 ```
 
 ### 4.3 部署方式二：systemctl（生产 Linux 服务器）

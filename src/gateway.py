@@ -190,42 +190,66 @@ async def evaluate_analyze_stream(task_id: str, authorization: str = Header(""))
 
     async def generate_mock():
         """Mock 模式下的模拟 AI 分析报告"""
-        mock_report = """根据插单评估结果分析，本次插单对现有生产计划产生以下影响：
+        # 从 task 数据中解析实际的 APS 数据
+        try:
+            rush_data = json.loads(task.get("rush_body", "{}"))
+            affect_data = json.loads(task.get("affect_body", "{}"))
+            rush_orders = rush_data.get("data", {}).get("data", [])
+            affect_orders = affect_data.get("data", {}).get("data", [])
+        except Exception:
+            rush_orders = []
+            affect_orders = []
 
-**一、插单概况**
-- 插单数量：5 个
-- 物料类型：伺服电机、控制板、减速箱、传感器组件、电源模块
-- 优先级：2-3 级（较高）
+        # 生成插单列表摘要
+        rush_summary = []
+        for o in rush_orders[:5]:
+            status = "满足" if (o.get("lackDay") or 0) <= 0 else f"不满足，预计延迟{o.get('lackDay')}天"
+            rush_summary.append(
+                f"插单编号：{o.get('orderCode', 'N/A')}\n"
+                f"插单人员：{o.get('rushUserFullName', 'N/A')} | 创建日期：{o.get('creationTime', '')[:10]}\n"
+                f"客户：{o.get('customerCode', 'N/A')} | 物料：{o.get('materialCode', 'N/A')} {o.get('materialName', 'N/A')}\n"
+                f"需求数量：{o.get('qty', 0)} | 期望交期：{o.get('expectDate', '')[:10]} | 优先级：{o.get('priority', 'N/A')}\n"
+                f"备注：{o.get('remark', '无') or '无'}\n"
+                f"排产结束日期：{o.get('productScheduleEndDate', 'N/A')[:10] if o.get('productScheduleEndDate') else 'N/A'} | 缺口天数：{o.get('lackDay', 'N/A')}\n"
+                f"评估结论：{status}\n"
+            )
 
-**二、对现有订单的影响**
+        # 受影响订单统计
+        delayed_orders = [o for o in affect_orders if o.get("isDelay")]
+        normal_orders = [o for o in affect_orders if not o.get("isDelay")]
 
-1. **伺服电机（缺料 8 天）**
-   - 影响订单：SO20250001、SO20250012
-   - 延迟风险：高
-   - 建议：优先处理加急订单
+        affect_summary = []
+        affect_summary.append(f"受影响订单总数：{len(affect_orders)}\n")
+        affect_summary.append(f"未造成延迟：{len(normal_orders)}条\n")
+        if normal_orders:
+            o = normal_orders[0]
+            affect_summary.append(f"举例Top10：订单{o.get('orderCode', 'N/A')} {o.get('materialName', 'N/A')} 交期{o.get('deliveryDate', '')[:10]}\n")
+            affect_summary.append(f"原排产{o.get('originalProductScheduleEndDate', '')[:10]}→新排产{o.get('productScheduleEndDate', '')[:10]} 影响{o.get('affectDay', 0)}天\n")
+        affect_summary.append(f"造成延迟：{len(delayed_orders)}条（按延迟天数降序）\n")
+        for o in delayed_orders[:7]:
+            affect_summary.append(
+                f"举例Top10：订单{o.get('orderCode', 'N/A')} {o.get('materialName', 'N/A')} "
+                f"延迟{o.get('delayDay', 0)}天 交期{o.get('deliveryDate', '')[:10]}\n"
+            )
 
-2. **控制板（缺料 7 天）**
-   - 影响订单：SO20250005、SO20250018
-   - 延迟风险：中
-   - 建议：适当加班赶产
+        mock_report = f"""1. 总览
 
-3. **减速箱（缺料 3 天）**
-   - 影响订单：SO20250008
-   - 延迟风险：低
-   - 建议：正常排产
+本次评估共 {len(rush_orders)} 个插单，以下是详细结果：
 
-**三、产能评估**
-- 当前负荷率：87%
-- 瓶颈工序：冲压车间
-- 评估结果：可以通过调整班次解决
+2. 插单逐项分析（按创建时间升序）
 
-**四、建议措施**
-1. 启动加班机制，应对高优先级插单
-2. 调整部分非紧急订单排产时间
-3. 提前采购缺料物料
-4. 与客户沟通交期顺延
 
-报告生成完成。如需查看详细数据，请点击下方报表链接。"""
+{"".join(rush_summary)}
+
+3. 对现有订单的影响
+
+
+{"".join(affect_summary)}
+
+4. 结尾
+
+
+如需查看完整明细，请回复'是'或'查看详细'"""
         for char in mock_report:
             yield f"data: {json.dumps({'type':'chunk','content':char}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.02)
