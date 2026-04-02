@@ -12,6 +12,8 @@ AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Sc
 
 ## 二、系统架构
 
+### 2.1 统一服务架构（推荐）
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                           用户浏览器                                    │
@@ -21,33 +23,42 @@ AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Sc
 │   │  mode: 'chat'          │       │  mode: 'evaluate'     │         │
 │   └──────────┬───────────┘       └──────────┬───────────┘         │
 │              │                             │                       │
-│              │    aps-ai-sdk.js           │                       │
+│              │    aps-ai-sdk.js             │                       │
 └──────────────┼─────────────────────────────┼──────────────────────┘
                │                             │
                ▼                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    AI 网关服务  (Port 8001)                          │
-│                       ai_gateway.py                                  │
+│              统一 FastAPI 服务 (Port 8000)                            │
+│                        src/main.py                                   │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  登录代理 → 会话管理 → 插单评估流程 → 业务问答（转发 AI服务中台）       │ │
+│  │  /api/*  → APS 接口（登录、插单、评估、查询）                       │ │
+│  │  /ai/*  → AI网关接口（登录、评估、问答）                           │ │
+│  │  /health → 健康检查                                            │ │
 │  └────────────────────────────────────────────────────────────────┘ │
-│          │                              │                             │
-│          ▼                              ▼                             │
-│  ┌──────────────────┐      ┌────────────────────────────────┐     │
-│  │  APS 模拟服务      │      │   AI服务中台                   │     │
-│  │  mock_server.py  │      │   /v1/chat-messages             │     │
-│  │  (Port 8000)     │      │   /v1/workflows/run            │     │
-│  └──────────────────┘      └────────────────────────────────┘     │
+│          │                              │                            │
+│          ▼                              ▼                            │
+│  ┌──────────────────┐      ┌────────────────────────────────┐      │
+│  │  APS 模拟服务      │      │   AI服务中台                   │      │
+│  │  (MOCK_MODE=true) │      │   /v1/chat-messages           │      │
+│  │                   │      │   /v1/workflows/run           │      │
+│  └──────────────────┘      └────────────────────────────────┘      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 服务说明
+### 2.2 部署方式
+
+| 部署方式 | 说明 |
+|----------|------|
+| **Docker Compose** | 一键部署，适合容器化环境 |
+| **systemctl** | 系统服务方式部署，适合生产 Linux 服务器 |
+| **手动启动** | 直接运行 Python 服务，适合开发调试 |
+
+### 2.3 服务说明
 
 | 服务 | 文件 | 端口 | 说明 |
 |------|------|------|------|
-| APS 模拟服务 | `mock_server.py` | 8000 | 模拟企业 APS 后台，提供登录、插单、评估、报表等接口 |
-| AI 网关服务 | `ai_gateway.py` | 8001 | 代理 APS 调用 + AI服务中台转发，维护用户会话 |
-| 前端演示页面 | `demo.html` | 8002 | 集成 SDK 的双窗口演示页面（聊天 + 评估） |
+| 统一服务 | `src/main.py` | 8000 | 整合 APS 接口 + AI网关 + 健康检查 |
+| 前端演示页面 | `demo.html` | - | 集成 SDK 的双窗口演示页面（可通过任意静态服务器托管） |
 
 ---
 
@@ -62,8 +73,15 @@ AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Sc
 │   ├── 客户接入指南.md              # 客户方接入指南（供客户阅读）
 │   └── AI服务改造手册.md            # AI 服务部署改造手册（供我方运维/开发阅读）
 │
-├── aps-mock/                        # 后端服务（Python + FastAPI）
-│   ├── ai_gateway.py               # AI 网关服务（端口 8001）
+├── src/                             # 统一服务源码（Python + FastAPI）
+│   ├── main.py                      # 服务入口（端口 8000）
+│   ├── config.py                    # 配置管理
+│   ├── aps.py                       # APS 接口模块
+│   ├── gateway.py                   # AI 网关模块
+│   └── utils.py                     # 工具函数
+│
+├── aps-mock/                        # 旧版分离服务（已废弃）
+│   ├── ai_gateway.py               # AI 网关服务（端口 8001，已废弃）
 │   ├── mock_server.py               # APS 模拟服务（端口 8000）
 │   ├── test_all.py                  # AI 网关完整流程测试脚本
 │   ├── test_gateway.py              # APS 模拟服务接口测试脚本
@@ -72,12 +90,18 @@ AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Sc
 │   ├── gateway.pid                   # AI 网关进程 PID
 │   └── server.pid                    # APS 模拟服务进程 PID
 │
-└── aps-client/                      # 前端资源
-    ├── aps-ai-sdk.js               # 客户端 SDK（聊天组件 + API）
-    ├── demo.html                    # 双窗口演示页面
-    ├── verify_api.py                # API 验证脚本
-    ├── demo_server.log               # Demo 服务日志
-    └── demo_server.pid               # Demo 服务 PID
+├── aps-client/                      # 前端资源
+│   ├── aps-ai-sdk.js               # 客户端 SDK（聊天组件 + API）
+│   ├── demo.html                    # 双窗口演示页面
+│   └── verify_api.py                # API 验证脚本
+│
+├── systemd/                          # systemd 服务配置
+│   └── ai-platform.service          # systemctl 服务文件
+│
+├── docker-compose.yml               # Docker Compose 配置
+├── Dockerfile                        # Docker 镜像构建文件
+├── install.sh                        # systemctl 安装脚本
+└── requirements.txt                  # Python 依赖
 ```
 
 ---
@@ -87,73 +111,115 @@ AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Sc
 ### 4.1 环境要求
 
 - Python 3.10+
+- Docker & Docker Compose（使用容器部署时）
 - 网络可访问 AI服务中台（`139.224.228.33:8090`）
 
-### 4.2 安装依赖
+### 4.2 部署方式一：Docker Compose（推荐）
 
 ```bash
-# aps-mock 使用的虚拟环境已包含所有依赖，无需额外安装
-# 如需全新安装：
-pip install fastapi uvicorn httpx
+# 启动服务
+docker compose up -d
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
 ```
 
-### 4.3 启动所有服务
+**环境变量配置（可选）**：
 
-**推荐启动顺序：**
+创建 `.env` 文件或使用环境变量：
 
 ```bash
-# 1. 启动 APS 模拟服务（端口 8000）
-cd /opt/aps/aps-mock
-nohup env http_proxy= https_proxy= no_proxy='*' python3 mock_server.py > server.log 2>&1 &
-echo $! > server.pid
-
-# 2. 启动 AI 网关服务（端口 8001）
-nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py > gateway.log 2>&1 &
-echo $! > gateway.pid
-
-# 3. 启动前端演示页面（端口 8002）
-nohup env http_proxy= https_proxy= no_proxy='*' python3 -m http.server 8002 \
-  --directory /opt/aps/aps-client > /opt/aps/aps-client/demo_server.log 2>&1 &
-echo $! > /opt/aps/aps-client/demo_server.pid
+# .env 文件示例
+MOCK_MODE=true
+APS_BASE_URL=http://localhost:8000
+AI_PLATFORM_BASE_URL=http://139.224.228.33:8090/v1
+AI_PLATFORM_CHAT_KEY=your_chat_key_here
+AI_PLATFORM_WORKFLOW_KEY=your_workflow_key_here
+LOG_LEVEL=INFO
 ```
 
-> ⚠️ **注意**：务必使用 `env http_proxy= https_proxy= no_proxy='*'` 取消代理，否则网关无法直连 AI服务中台。
-
-**验证服务状态：**
+### 4.3 部署方式二：systemctl（生产 Linux 服务器）
 
 ```bash
-# APS 模拟服务
-curl --noproxy '*' http://localhost:8000/
+# 安装服务
+sudo ./install.sh
 
-# AI 网关服务
-curl --noproxy '*' http://localhost:8001/health
+# 启动服务
+sudo systemctl start ai-platform
 
-# 前端演示页面
-curl --noproxy '*' http://localhost:8002/demo.html | head -3
+# 停止服务
+sudo systemctl stop ai-platform
+
+# 重启服务
+sudo systemctl restart ai-platform
+
+# 查看服务状态
+sudo systemctl status ai-platform
+
+# 查看日志
+tail -f /var/log/ai-platform/stdout.log
+tail -f /var/log/ai-platform/stderr.log
 ```
 
-### 4.4 测试账号
+### 4.4 部署方式三：手动启动（开发调试）
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 启动统一服务（端口 8000）
+cd /opt/aps
+python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+# 3. 启动前端演示页面（可选）
+cd /opt/aps/aps-client
+python -m http.server 8002
+```
+
+> ⚠️ **注意**：务必使用 `env http_proxy= https_proxy= no_proxy='*'` 取消代理，否则服务无法直连 AI服务中台。
+
+### 4.5 验证服务状态
+
+```bash
+# 健康检查
+curl http://localhost:8000/health
+
+# 根路径
+curl http://localhost:8000/
+```
+
+### 4.6 测试账号
 
 | 字段 | 值 |
 |------|-----|
 | 用户名 | `admin` |
 | 密码 | `admin123` |
 
-### 4.5 测试脚本
+---
 
-```bash
-# 测试 AI 网关（完整流程：登录 → 评估 → 业务问答）
-cd /opt/aps/aps-mock
-python3 test_all.py
+## 五、环境变量配置
 
-# 测试 APS 模拟服务
-cd /opt/aps/aps-mock
-python3 test_gateway.py
-```
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `MOCK_MODE` | `true` | 模式切换：`true`=模拟模式，`false`=生产模式 |
+| `APS_BASE_URL` | `http://localhost:8000` | APS 服务地址（生产模式使用） |
+| `AI_PLATFORM_BASE_URL` | `http://139.224.228.33:8090/v1` | AI服务中台地址 |
+| `AI_PLATFORM_CHAT_KEY` | - | 业务问答 Key（必填） |
+| `AI_PLATFORM_WORKFLOW_KEY` | - | 插单评估 Key（必填） |
+| `LOG_LEVEL` | `INFO` | 日志级别：DEBUG, INFO, WARNING, ERROR |
 
 ---
 
-## 五、SDK 集成指南（重点）
+## 六、SDK 集成指南（重点）
 
 ### 5.1 快速演示
 
@@ -177,7 +243,7 @@ http://192.168.253.128:8002/demo.html
 <!-- 1. 配置网关地址（必须写在 aps-ai-sdk.js 之前）-->
 <script>
   window.APS_CONFIG = {
-    BASE_URL: 'http://192.168.253.128:8001'  // ← 改成你的网关地址
+    BASE_URL: 'http://192.168.253.128:8000'  // ← 改成你的统一服务地址
   }
 </script>
 
@@ -194,9 +260,9 @@ http://192.168.253.128:8002/demo.html
 </script>
 ```
 
-> 默认值（未配置时）：`http://localhost:8001`
+> 默认值（未配置时）：`http://localhost:8000`
 >
-> 报表页面地址从 `BASE_URL` 自动推导（端口号 -1），例如 `BASE_URL: 'http://x:8001'` → 报表地址 `http://x:8000/report`
+> 报表页面地址从 `BASE_URL` 自动推导，例如 `BASE_URL: 'http://x:8000'` → 报表地址 `http://x:8000/report`
 
 ### 5.3 ApsAI 核心 API
 
@@ -311,9 +377,9 @@ ApsAIChatWidget.mount('#eval-panel',  { mode: 'evaluate' })  // 插单评估
 
 ---
 
-## 六、接口说明
+## 七、统一服务接口（Port 8000）
 
-### 6.1 AI 网关接口（`/ai/*`）
+### 7.1 AI 网关接口（`/ai/*`）
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -322,17 +388,14 @@ ApsAIChatWidget.mount('#eval-panel',  { mode: 'evaluate' })  // 插单评估
 | `/ai/rush-order/evaluate/status/{taskId}` | GET | 轮询评估状态（running → completed） |
 | `/ai/rush-order/evaluate/analyze/{taskId}/stream` | POST | 获取 AI 分析报告（流式） |
 | `/ai/chat/stream` | POST | 业务问答（流式，支持多轮对话） |
-| `/ai/chat` | POST | 业务问答（阻塞式） |
 | `/ai/conversation/{convId}` | DELETE | 清除对话历史 |
 
-### 6.2 APS 模拟服务接口（`/api/*`）
+### 7.2 APS 接口（`/api/*`）
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/login` | POST | 登录 |
 | `/api/aps/rush-order/paging` | POST | 插单分页查询 |
-| `/api/aps/rush-order` | POST | 新增插单 |
-| `/api/aps/rush-order` | DELETE | 删除插单 |
 | `/api/aps/rush-order-evaluate` | GET | 触发评估运算（约3秒） |
 | `/api/aps/rush-order-evaluate/warning` | GET | 轮询评估状态 |
 | `/api/aps/affect-order/paging` | POST | 受影响订单查询 |
@@ -342,9 +405,16 @@ ApsAIChatWidget.mount('#eval-panel',  { mode: 'evaluate' })  // 插单评估
 | `/api/aps/risk` | GET | 交期风险查询（无需 Token） |
 | `/report` | GET | 插单评估报表页面（HTML） |
 
+### 7.3 健康检查接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/` | GET | 根路径，返回服务状态 |
+| `/health` | GET | 健康检查，返回可用端点列表 |
+
 ---
 
-## 七、业务问答流程
+## 八、业务问答流程
 
 ```
 用户提问
@@ -387,14 +457,14 @@ await ApsAI.chat('哪个最紧急？', {
 
 | 问题类型 | APS 接口 | 示例问题 |
 |----------|----------|----------|
-| 订单进度 | `GET /aps/order` | "订单 SO20250001 进度如何？" |
-| 缺料预警 | `GET /aps/shortage` | "最近有哪些缺料预警？" |
-| 产能负荷 | `GET /aps/capacity` | "本周产能负荷情况如何？" |
-| 交期风险 | `GET /aps/risk` | "近两周有哪些交期风险？" |
+| 订单进度 | `GET /api/aps/order` | "订单 SO20250001 进度如何？" |
+| 缺料预警 | `GET /api/aps/shortage` | "最近有哪些缺料预警？" |
+| 产能负荷 | `GET /api/aps/capacity` | "本周产能负荷情况如何？" |
+| 交期风险 | `GET /api/aps/risk` | "近两周有哪些交期风险？" |
 
 ---
 
-## 八、插单评估流程
+## 九、插单评估流程
 
 ```
 用户点击"触发评估"
@@ -436,43 +506,43 @@ await ApsAI.evaluateRushOrders({
 
 ---
 
-## 九、SDK 配置详解
+## 十、SDK 配置详解
 
-### 9.1 配置项
+### 10.1 配置项
 
 ```javascript
 window.APS_CONFIG = {
-  BASE_URL: 'http://192.168.253.128:8001'  // 必填，AI 网关地址
+  BASE_URL: 'http://192.168.253.128:8000'  // 统一服务地址（端口 8000）
 }
 ```
 
-### 9.2 地址自动推导规则
+### 10.2 地址自动推导规则
 
 | BASE_URL | 报表地址 | 说明 |
 |----------|----------|------|
-| `http://x:8001` | `http://x:8000/report` | 端口 -1 |
-| `https://x.com:8443` | `https://x.com:8442/report` | 端口 -1 |
+| `http://x:8000` | `http://x:8000/report` | 统一服务 |
+| `https://x.com:8443` | `https://x.com:8443/report` | 端口不变 |
 | `http://x.com` | `http://x.com/report` | 默认端口 80 |
 
-### 9.3 CORS 跨域
+### 10.3 CORS 跨域
 
 如果网关和前端不在同源下，需要在网关或 nginx 配置 CORS。网关已默认配置 `allow_origins=["*"]`，可直接使用。
 
 ---
 
-## 十、常见问题
+## 十一、常见问题
 
 ### Q1: 登录返回"APS 登录服务异常"
 
-**原因**：APS 模拟服务（端口 8000）未启动，或网关使用了代理导致无法连接 `localhost:8000`。
+**原因**：APS 服务未启动，或使用了代理导致无法连接。
 
 **解决**：
 ```bash
-# 确认模拟服务运行中
-curl --noproxy '*' http://localhost:8000/
+# 确认服务运行中
+curl http://localhost:8000/health
 
-# 重启网关时取消代理
-nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
+# 重启时取消代理
+env http_proxy= https_proxy= no_proxy='*' python -m uvicorn src.main:app
 ```
 
 ### Q2: 聊天窗口发送问题后无回复，但 curl 测试正常
@@ -480,7 +550,7 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
 **原因**：浏览器代理缓冲了 SSE 流式响应，导致浏览器无法逐块接收。
 
 **解决**：
-1. 浏览器代理设置中将 `192.168.253.128` 和 `139.224.228.33` 加入**绕过列表**
+1. 浏览器代理设置中将 `139.224.228.33` 加入**绕过列表**
 2. 或使用 VPN/直连网络
 
 **排查方法**：打开浏览器 F12 Console，查看 SDK 日志：
@@ -495,24 +565,23 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
 
 **原因**：AI服务中台返回的 SSE 行结束符为 `\r\n`，未正确处理。
 
-**解决**：已修复，参考 `ai_gateway.py` 中的 `raw_line = line.rstrip('\r')`。
+**解决**：已修复，参考 `src/gateway.py` 中的 `raw_line = line.rstrip('\r')`。
 
 ### Q4: 插单评估正常但 AI 报告为空
 
 **原因**：`evaluate_analyze_stream` 未正确处理 AI服务工作流的 `text_chunk` 和 `workflow_finished` 事件。
 
-**解决**：确认 `ai_gateway.py` 中同时处理了：
+**解决**：确认 `src/gateway.py` 中同时处理了：
 - `t == "text_chunk"` → yield chunk
 - `t == "workflow_finished"` → yield done
 
 ### Q5: 报表链接 404
 
-**原因**：报表链接地址配置错误，或 mock_server 未启动。
+**原因**：报表链接地址配置错误，或服务未启动。
 
 **解决**：
-1. 确认 `BASE_URL` 配置正确（端口 8001 的主机）
-2. 确认 mock_server 运行在端口 8000
-3. 报表链接从 `BASE_URL` 自动推导，端口为网关端口 -1
+1. 确认 `BASE_URL` 配置正确
+2. 确认统一服务运行在端口 8000
 
 ### Q6: 多标签页登录状态不共享
 
@@ -522,7 +591,7 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
 
 ---
 
-## 十一、数据规范
+## 十二、数据规范
 
 集成 APS 接口时需注意以下字段的格式要求：
 
@@ -536,20 +605,23 @@ nohup env http_proxy= https_proxy= no_proxy='*' python3 ai_gateway.py &
 
 ---
 
-## 十二、服务日志
+## 十三、服务日志
 
 运行时各服务的日志文件：
 
-| 服务 | 日志文件 |
-|------|----------|
-| APS 模拟服务 | `/opt/aps/aps-mock/server.log` |
-| AI 网关服务 | `/opt/aps/aps-mock/gateway.log` |
-| 前端 Demo | `/opt/aps/aps-client/demo_server.log` |
+| 部署方式 | 日志文件 |
+|----------|----------|
+| Docker | `docker compose logs -f ai-platform` |
+| systemctl | `/var/log/ai-platform/stdout.log` |
+| 手动启动 | 输出到控制台 |
 
 查看实时日志：
 ```bash
-tail -f /opt/aps/aps-mock/gateway.log
-tail -f /opt/aps/aps-mock/server.log
+# Docker
+docker compose logs -f
+
+# systemctl
+tail -f /var/log/ai-platform/stdout.log
 ```
 
 网关 `chat_stream` 函数内置了详细的调试日志，包含：
