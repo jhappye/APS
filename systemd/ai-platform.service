@@ -1,0 +1,18 @@
+[Unit]
+Description=AI中台统一服务
+Documentation=
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ai-platform
+EnvironmentFile=/opt/ai-platform/.env
+ExecStart=/opt/ai-platform/venv/bin/python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/ai-platform/stdout.log
+StandardError=append:/var/log/ai-platform/stderr.log
+
+[Install]
+WantedBy=multi-user.target
