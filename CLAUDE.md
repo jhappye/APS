@@ -6,26 +6,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI中台 is an AI-powered Advanced Planning and Scheduling assistant system. It consists of two main components:
 
-- **aps-mock**: Python backend services (FastAPI) - mock APS server + AI gateway
-- **aps-client**: JavaScript SDK and demo for frontend integration
+- **src/**: Python backend services (FastAPI) - unified service with APS interfaces + AI gateway
+- **aps-client/**: JavaScript SDK and demo for frontend integration
 
 ## Architecture
 
 ```
 Client Browser
     │
-    ├─→ ai_gateway.py (port 8001) ──→ AI服务中台 (external)
-    │         │
-    │         └─→ mock_server.py (port 8000) ──→ Mock APS Backend
-    │                                              (simulates enterprise APS system)
+    └─→ Unified Service (port 8000)
+              ├─→ /api/*  APS接口
+              └─→ /ai/*  AI网关接口
+                        │
+                        └─→ AI服务中台 (external)
 ```
 
-### Services
+### Unified Service
 
-| Service | File | Port | Purpose |
-|---------|------|------|---------|
-| Mock APS Server | `aps-mock/mock_server.py` | 8000 | Simulates enterprise APS backend (login, rush orders, evaluation) |
-| AI Gateway | `aps-mock/ai_gateway.py` | 8001 | Proxies APS calls + AI服务中台, manages sessions |
+| Component | File | Description |
+|-----------|------|-------------|
+| APS Interfaces | `src/aps.py` | APS mock server (login, rush orders, evaluation) |
+| AI Gateway | `src/gateway.py` | Proxies APS calls + AI服务中台, manages sessions |
+| Entry Point | `src/main.py` | FastAPI application (port 8000) |
+| Configuration | `src/config.py` | Environment variable configuration |
+
+### Running Service
+
+**Option 1: Python directly**
+```bash
+cd /opt/aps
+pip install -r requirements.txt
+python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+**Option 2: Docker Compose**
+```bash
+docker compose up -d
+docker compose down
+```
+
+**Option 3: systemctl (after install)**
+```bash
+sudo ./install.sh
+sudo systemctl start ai-platform
+```
 
 ### Key API Flows
 
@@ -38,31 +62,17 @@ Client Browser
 **Business Chat Flow:**
 1. Client → `POST /ai/chat/stream` → streams AI responses via AI服务中台 chat-messages API
 
-## Commands
+## Configuration
 
-### Running Services
+The service uses environment variables (see `.env.example`):
 
-```bash
-# Start Mock APS Server (port 8000)
-cd /opt/aps/aps-mock && ./aps_venv/bin/python mock_server.py
-
-# Start AI Gateway (port 8001) - in another terminal
-cd /opt/aps/aps-mock && ./aps_venv/bin/python ai_gateway.py
-```
-
-### Testing
-
-```bash
-# Test AI Gateway (full flow: login → evaluate → chat)
-cd /opt/aps/aps-mock && ./aps_venv/bin/python test_all.py
-
-# Test Mock APS Server directly
-cd /opt/aps/aps-mock && ./aps_venv/bin/python test_gateway.py
-```
-
-### Client Demo
-
-Open `aps-client/demo.html` in a browser after starting both services.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| MOCK_MODE | Enable mock mode | `true` |
+| APS_BASE_URL | APS backend URL | `http://localhost:8000` |
+| AI_PLATFORM_BASE_URL | AI服务中台 URL | `http://139.224.228.33:8090/v1` |
+| AI_PLATFORM_CHAT_KEY | Chat API Key | - |
+| AI_PLATFORM_WORKFLOW_KEY | Workflow API Key | - |
 
 ## Test Credentials
 
@@ -83,17 +93,22 @@ From the integration docs (`对接说明文档.md`):
 ```
 /opt/aps/
 ├── CLAUDE.md
-├── aps-mock/
-│   ├── ai_gateway.py      # AI Gateway service (FastAPI, port 8001)
-│   ├── mock_server.py     # Mock APS backend (FastAPI, port 8000)
-│   ├── test_all.py        # Gateway integration tests
-│   ├── test_gateway.py    # Mock server tests
-│   ├── gateway.log        # Gateway service log
-│   ├── server.log         # Mock server log
-│   └── aps_venv/          # Python virtual environment
-│       └── bin/python     # Python interpreter with dependencies
+├── README.md
+├── requirements.txt
+├── src/
+│   ├── __init__.py
+│   ├── main.py          # Unified service entry point
+│   ├── aps.py           # APS interfaces
+│   ├── gateway.py        # AI gateway interfaces
+│   ├── config.py         # Configuration
+│   └── utils.py          # Utility functions
+├── systemd/
+│   └── ai-platform.service  # systemctl service
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
 └── aps-client/
     ├── aps-ai-sdk.js      # Client-side JavaScript SDK
-    ├── demo.html           # Demo page (chat + evaluate modes)
-    └── verify_api.py      # API verification script
+    ├── demo.html           # Demo page
+    └── verify_api.py       # API verification script
 ```
