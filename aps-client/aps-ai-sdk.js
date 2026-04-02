@@ -20,7 +20,7 @@ const ApsAI = (() => {
   function getReportUrl() {
     // 优先使用独立的报表服务地址配置
     if (window.APS_CONFIG && window.APS_CONFIG.REPORT_BASE_URL) {
-      return `${window.APS_CONFIG.REPORT_BASE_URL}/report?t=${Date.now()}`
+      return `${window.APS_CONFIG.REPORT_BASE_URL}/api/report?t=${Date.now()}`
     }
     // 从 BASE_URL 推导（如 http://192.168.1.1:8001 → 192.168.1.1:8000）
     const base = (window.APS_CONFIG && window.APS_CONFIG.BASE_URL) || CONFIG.BASE_URL
@@ -28,9 +28,9 @@ const ApsAI = (() => {
     if (match) {
       const host = match[1]
       const port = match[2] ? String(parseInt(match[2]) - 1) : '8000'  // 8001→8000
-      return `http://${host}:${port}/report?t=${Date.now()}`
+      return `http://${host}:${port}/api/report?t=${Date.now()}`
     }
-    return `http://localhost:8000/report?t=${Date.now()}`
+    return `http://localhost:8000/api/report?t=${Date.now()}`
   }
 
   // ─── 内部状态 ─────────────────────────────────────
