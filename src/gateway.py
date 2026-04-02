@@ -6,6 +6,7 @@ import httpx
 import json
 import uuid
 import time
+import asyncio
 
 from .config import config
 from . import aps
@@ -187,7 +188,55 @@ async def evaluate_analyze_stream(task_id: str, authorization: str = Header(""))
         "user": session["userId"] or "gateway_user",
     }
 
+    async def generate_mock():
+        """Mock 模式下的模拟 AI 分析报告"""
+        mock_report = """根据插单评估结果分析，本次插单对现有生产计划产生以下影响：
+
+**一、插单概况**
+- 插单数量：5 个
+- 物料类型：伺服电机、控制板、减速箱、传感器组件、电源模块
+- 优先级：2-3 级（较高）
+
+**二、对现有订单的影响**
+
+1. **伺服电机（缺料 8 天）**
+   - 影响订单：SO20250001、SO20250012
+   - 延迟风险：高
+   - 建议：优先处理加急订单
+
+2. **控制板（缺料 7 天）**
+   - 影响订单：SO20250005、SO20250018
+   - 延迟风险：中
+   - 建议：适当加班赶产
+
+3. **减速箱（缺料 3 天）**
+   - 影响订单：SO20250008
+   - 延迟风险：低
+   - 建议：正常排产
+
+**三、产能评估**
+- 当前负荷率：87%
+- 瓶颈工序：冲压车间
+- 评估结果：可以通过调整班次解决
+
+**四、建议措施**
+1. 启动加班机制，应对高优先级插单
+2. 调整部分非紧急订单排产时间
+3. 提前采购缺料物料
+4. 与客户沟通交期顺延
+
+报告生成完成。如需查看详细数据，请点击下方报表链接。"""
+        for char in mock_report:
+            yield f"data: {json.dumps({'type':'chunk','content':char}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.02)
+        yield f"data: {json.dumps({'type':'done','answer':mock_report,'taskId':task_id}, ensure_ascii=False)}\n\n"
+
     async def generate():
+        if config.is_mock_mode():
+            async for chunk in generate_mock():
+                yield chunk
+            return
+
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 async with client.stream(
@@ -250,7 +299,39 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
         "conversation_id": req.conversationId or "",
     }
 
+    async def generate_mock():
+        """Mock 模式下的模拟 AI 回答"""
+        mock_responses = [
+            "根据当前 APS 数据分析，",
+            "您好！以下是您的查询结果：\n\n",
+            "让我为您查询一下...\n\n根据系统数据，",
+        ]
+        import random
+        response = random.choice(mock_responses)
+
+        if "订单" in req.message or "进度" in req.message:
+            response += "当前有 3 个订单处于生产中状态，其中 2 个可能存在交期延迟风险。建议关注冲压车间的产能情况。"
+        elif "缺料" in req.message:
+            response += "近期有以下物料存在缺料风险：\n1. 伺服电机 - 缺料约 100 件\n2. 控制板 - 缺料约 80 件\n建议尽快安排采购。"
+        elif "产能" in req.message:
+            response += "当前产能负荷率为 87%，处于正常水平。但冲压车间负荷较高（约 95%），建议适时安排加班。"
+        elif "风险" in req.message or "交期" in req.message:
+            response += "近期交期风险预警：\n1. 高风险订单 3 个（延迟 7 天以上）\n2. 中风险订单 5 个（延迟 3-7 天）\n建议及时与客户沟通。"
+        else:
+            response += "您可以查询：订单进度、缺料预警、产能负荷、交期风险等业务数据。请问有什么可以帮助您的？"
+
+        conv_id = f"mock_conv_{uuid.uuid4().hex[:8]}"
+        for char in response:
+            yield f"data: {json.dumps({'type':'chunk','content':char}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.02)
+        yield f"data: {json.dumps({'type':'done','conversationId':conv_id}, ensure_ascii=False)}\n\n"
+
     async def generate():
+        if config.is_mock_mode():
+            async for chunk in generate_mock():
+                yield chunk
+            return
+
         try:
             async with httpx.AsyncClient(timeout=120) as client:
                 async with client.stream(
@@ -298,6 +379,8 @@ async def chat_stream(req: ChatRequest, authorization: str = Header("")):
 async def clear_conversation(conv_id: str, userId: str = "", authorization: str = Header("")):
     """清除对话历史"""
     session = verify_gateway_token(authorization)
+    if config.is_mock_mode():
+        return ok(data={"cleared": True})
     async with httpx.AsyncClient(timeout=15) as client:
         await client.delete(f"{config.AI_PLATFORM_BASE_URL}/conversations/{conv_id}",
             headers={"Authorization": f"Bearer {config.get_chat_key()}"},
