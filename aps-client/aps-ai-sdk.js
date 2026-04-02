@@ -1,5 +1,5 @@
 /**
- * APS AI 助手 · 客户端 SDK V2
+ * AI中台 · 客户端 SDK V2
  * ================================
  * 基于真实接口重写，完整流程：
  *   登录 → 触发评估 → 轮询状态 → 流式获取 AI 报告 → 多轮追问
@@ -342,7 +342,7 @@ const ApsAIChatWidget = (() => {
   function _renderLogin(container, onSuccess) {
     container.innerHTML = `
       <div class="aps-wrap">
-        <div class="aps-header"><span class="dot"></span>APS AI 助手 · 登录</div>
+        <div class="aps-header"><span class="dot"></span>AI中台 · 登录</div>
         <div class="aps-login-box">
           <h3>请登录后使用</h3>
           <input id="aps-un" placeholder="用户名" />
@@ -374,7 +374,7 @@ const ApsAIChatWidget = (() => {
 
     container.innerHTML = `
       <div class="aps-wrap">
-        <div class="aps-header"><span class="dot"></span>APS AI 助手</div>
+        <div class="aps-header"><span class="dot"></span>AI中台</div>
         <div class="aps-msgs" id="aps-msgs">
           <div class="aps-msg bot">
             <div class="aps-avatar">🤖</div>

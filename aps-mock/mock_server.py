@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APS AI 助手 · 模拟服务 V2
+AI中台 · 模拟服务 V2
 基于客户方真实接口文档重写
 真实接口对应：
   POST /api/login                          → 登录获取 token
@@ -17,7 +17,7 @@ from typing import Optional, List, Any
 import uvicorn, uuid, random, asyncio
 from datetime import datetime, timedelta, date
 
-app = FastAPI(title="APS AI 模拟服务 V2（真实接口）", version="2.0.0")
+app = FastAPI(title="AI中台 模拟服务 V2（真实接口）", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ─── 内存存储 ─────────────────────────────────────────────
@@ -464,7 +464,7 @@ async def report():
     <td>SO20251235</td><td>2025-09-12</td><td>2025-09-13</td><td><span class="tag tag-warn">+1天</span></td><td>物料短缺</td>
   </tr>
 </table>
-<div class="footer">本报表由 APS AI 助手自动生成 · 数据仅供参考</div>
+<div class="footer">本报表由 AI中台自动生成 · 数据仅供参考</div>
 </body>
 </html>"""
     return HTMLResponse(content=html)
@@ -474,7 +474,7 @@ async def report():
 async def health():
     return {
         "status": "ok",
-        "service": "APS AI 模拟服务 V2（真实接口）",
+        "service": "AI中台 模拟服务 V2（真实接口）",
         "version": "2.0.0",
         "test_account": {"userName": "admin", "password": "admin123"},
         "endpoints": {

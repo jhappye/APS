@@ -1,4 +1,4 @@
-# APS AI 助手 · AI 服务改造手册
+# AI中台 · AI 服务改造手册
 
 > 本文档面向：AI 服务开发/运维团队
 >
@@ -417,7 +417,7 @@ curl --noproxy '*' http://localhost:8001/health
 ```ini
 # /etc/systemd/system/ai-gateway.service
 [Unit]
-Description=APS AI Gateway Service
+Description=AI中台 Gateway Service
 After=network.target
 
 [Service]

@@ -1,8 +1,8 @@
-# APS AI 助手 · 智能排产业务问答系统
+# AI中台 · 智能排产业务问答系统
 
 ## 一、项目简介
 
-APS AI 助手是一个基于 AI服务中台的智能排产（Advanced Planning and Scheduling）业务问答系统，帮助企业用户通过自然语言与 APS 系统交互，完成插单评估和业务问答两大核心场景。
+AI中台是一个基于 AI服务中台的智能排产（Advanced Planning and Scheduling）业务问答系统，帮助企业用户通过自然语言与 APS 系统交互，完成插单评估和业务问答两大核心场景。
 
 **核心功能：**
 - **插单评估**：用户提交插单需求 → APS 模拟运算 → AI 自动分析对现有订单的影响，生成评估报告
@@ -271,7 +271,7 @@ const SUGGESTED = [
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>APS AI 助手</title>
+<title>AI中台</title>
 <style>
   body { font-family: "PingFang SC", sans-serif; background: #f0f2f5;
          display: flex; align-items: center; justify-content: center; min-height: 100vh; }

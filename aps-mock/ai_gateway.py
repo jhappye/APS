@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APS AI 网关服务 V2
+AI中台网关服务 V2
 ==================
 基于真实接口重写，核心变化：
 1. 新增登录代理：客户端通过网关登录，网关维护 APS token
@@ -18,7 +18,7 @@ import httpx, json, uuid, asyncio, time, logging
 logger = logging.getLogger("uvicorn.access")
 logger.setLevel(logging.INFO)
 
-app = FastAPI(title="APS AI 网关服务 V2", version="2.0.0")
+app = FastAPI(title="AI中台网关服务 V2", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ─── 配置 ───────────────────────────────────────────────
@@ -424,7 +424,7 @@ async def clear_conversation(conv_id: str, userId: str = "", authorization: str 
 @app.get("/health")
 async def health():
     return {
-        "status": "ok", "service": "APS AI 网关服务 V2", "version": "2.0.0",
+        "status": "ok", "service": "AI中台网关服务 V2", "version": "2.0.0",
         "endpoints": {
             "登录":          "POST /ai/login",
             "触发评估":      "POST /ai/rush-order/evaluate/start",

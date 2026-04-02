@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APS AI 助手 · 真实接口测试脚本 V2
+AI中台 · 真实接口测试脚本 V2
 测试顺序：登录 → 查插单 → 触发评估 → 轮询状态 → 查受影响订单
 """
 import requests, time, json

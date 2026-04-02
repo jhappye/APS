@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-APS AI 助手 is an AI-powered Advanced Planning and Scheduling assistant system. It consists of two main components:
+AI中台 is an AI-powered Advanced Planning and Scheduling assistant system. It consists of two main components:
 
 - **aps-mock**: Python backend services (FastAPI) - mock APS server + AI gateway
 - **aps-client**: JavaScript SDK and demo for frontend integration
