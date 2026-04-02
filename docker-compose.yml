@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  ai-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-platform
+    ports:
+      - "8000:8000"
+    environment:
+      - MOCK_MODE=${MOCK_MODE:-true}
+      - APS_BASE_URL=${APS_BASE_URL:-}
+      - AI_PLATFORM_BASE_URL=${AI_PLATFORM_BASE_URL:-http://139.224.228.33:8090/v1}
+      - AI_PLATFORM_CHAT_KEY=${AI_PLATFORM_CHAT_KEY:-}
+      - AI_PLATFORM_WORKFLOW_KEY=${AI_PLATFORM_WORKFLOW_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/var/log/ai-platform
+    restart: unless-stopped
+    networks:
+      - ai-platform-network
+
+networks:
+  ai-platform-network:
+    driver: bridge
