@@ -16,10 +16,14 @@ const ApsAI = (() => {
     BASE_URL: (window.APS_CONFIG && window.APS_CONFIG.BASE_URL) || 'http://localhost:8001',
   }
 
-  // 报表页面地址也从配置读取（默认同网关地址）
+  // 报表页面地址也从配置读取（支持 REPORT_BASE_URL 覆盖）
   function getReportUrl() {
+    // 优先使用独立的报表服务地址配置
+    if (window.APS_CONFIG && window.APS_CONFIG.REPORT_BASE_URL) {
+      return `${window.APS_CONFIG.REPORT_BASE_URL}/report?t=${Date.now()}`
+    }
+    // 从 BASE_URL 推导（如 http://192.168.1.1:8001 → 192.168.1.1:8000）
     const base = (window.APS_CONFIG && window.APS_CONFIG.BASE_URL) || CONFIG.BASE_URL
-    // 从 BASE_URL 中提取 host:port（如 http://192.168.1.1:8001 → 192.168.1.1:8000）
     const match = base.match(/^https?:\/\/([^\/:]+)(?::(\d+))?/)
     if (match) {
       const host = match[1]

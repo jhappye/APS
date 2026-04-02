@@ -10,6 +10,7 @@ class Config:
 
     # APS 配置
     APS_BASE_URL: str = os.getenv("APS_BASE_URL", "http://localhost:8000")
+    REPORT_BASE_URL: str = os.getenv("REPORT_BASE_URL", "")  # 报表服务地址，默认使用 APS_BASE_URL
 
     # AI服务中台配置
     AI_PLATFORM_BASE_URL: str = os.getenv("AI_PLATFORM_BASE_URL", "http://139.224.228.33:8090/v1")
@@ -39,6 +40,13 @@ class Config:
         if not cls.AI_PLATFORM_WORKFLOW_KEY:
             raise ValueError("AI_PLATFORM_WORKFLOW_KEY cannot be empty")
         return cls.AI_PLATFORM_WORKFLOW_KEY
+
+    @classmethod
+    def get_report_base_url(cls) -> str:
+        """获取报表服务地址"""
+        if cls.REPORT_BASE_URL:
+            return cls.REPORT_BASE_URL
+        return cls.APS_BASE_URL
 
 
 # 全局配置实例
