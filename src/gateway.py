@@ -8,6 +8,8 @@ import uuid
 import time
 
 from .config import config
+from . import aps
+from .aps import BasePagingInput
 
 router = APIRouter(prefix="/ai", tags=["AI网关"])
 
@@ -88,18 +90,16 @@ async def evaluate_start(authorization: str = Header("")):
     aps_headers = {"Authorization": f"Bearer {session['aps_token']}"}
 
     if config.is_mock_mode():
-        # 模拟模式：调用内部 APS 接口
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{config.APS_BASE_URL}/api/aps/rush-order-evaluate",
-                                    headers=aps_headers)
+        # 模拟模式：直接调用 APS 函数
+        resp = await aps.rush_order_evaluate(authorization=f"Bearer {session['aps_token']}")
     else:
         # 生产模式：调用客户 APS
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(f"{config.APS_BASE_URL}/api/aps/rush-order-evaluate",
                                     headers=aps_headers)
 
-    if resp.status_code != 200:
-        raise HTTPException(502, {"code": "APS_ERROR", "message": f"触发评估失败 {resp.status_code}"})
+        if resp.status_code != 200:
+            raise HTTPException(502, {"code": "APS_ERROR", "message": f"触发评估失败 {resp.status_code}"})
 
     task_id = f"eval_{uuid.uuid4().hex[:8]}"
     eval_tasks[task_id] = {
@@ -122,31 +122,43 @@ async def evaluate_status(task_id: str, authorization: str = Header("")):
     task = eval_tasks[task_id]
     aps_headers = {"Authorization": f"Bearer {task['aps_token']}"}
     aps_base = task["aps_base_url"]
+    is_mock = config.is_mock_mode()
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(f"{aps_base}/api/aps/rush-order-evaluate/warning",
-                                headers=aps_headers)
+    if is_mock:
+        # 模拟模式：直接调用 APS 函数
+        warning_resp = await aps.rush_order_evaluate_warning(authorization=f"Bearer {task['aps_token']}")
+    else:
+        # 生产模式：调用客户 APS
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(f"{aps_base}/api/aps/rush-order-evaluate/warning",
+                                    headers=aps_headers)
+        warning_resp = resp.json()
 
-    body = resp.json()
-    warning_data = body.get("data")
+    warning_data = warning_resp.get("data")
 
     if warning_data is None:
         # 评估完成
-        async with httpx.AsyncClient(timeout=30) as client:
-            rush_resp = await client.post(
-                f"{aps_base}/api/aps/rush-order/paging",
-                headers=aps_headers,
-                json={"current": 1, "pageSize": 100},
-            )
-            affect_resp = await client.post(
-                f"{aps_base}/api/aps/affect-order/paging",
-                headers=aps_headers,
-                json={"current": 1, "pageSize": 100},
-            )
+        if is_mock:
+            rush_resp = await aps.rush_order_paging(body=BasePagingInput(current=1, pageSize=100), authorization=f"Bearer {task['aps_token']}")
+            affect_resp = await aps.affect_order_paging(body=BasePagingInput(current=1, pageSize=100), authorization=f"Bearer {task['aps_token']}")
+            task["rush_body"] = json.dumps(rush_resp)
+            task["affect_body"] = json.dumps(affect_resp)
+        else:
+            async with httpx.AsyncClient(timeout=30) as client:
+                rush_resp = await client.post(
+                    f"{aps_base}/api/aps/rush-order/paging",
+                    headers=aps_headers,
+                    json={"current": 1, "pageSize": 100},
+                )
+                affect_resp = await client.post(
+                    f"{aps_base}/api/aps/affect-order/paging",
+                    headers=aps_headers,
+                    json={"current": 1, "pageSize": 100},
+                )
+            task["rush_body"] = rush_resp.text
+            task["affect_body"] = affect_resp.text
 
         task["status"] = "completed"
-        task["rush_body"] = rush_resp.text
-        task["affect_body"] = affect_resp.text
         return ok(data={"taskId": task_id, "status": "completed"})
     else:
         return ok(data={"taskId": task_id, "status": "running", "message": warning_data})
