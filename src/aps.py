@@ -8,6 +8,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from .utils import today_str, date_str, rand_order_code
+from .config import config
 
 router = APIRouter(prefix="/api", tags=["APS"])
 
@@ -319,18 +320,185 @@ async def query_risk(dateFrom: Optional[str] = None,
 
 
 @router.get("/report")
-async def report():
-    """模拟报表页面"""
+async def report(authorization: str = ""):
+    """插单评估明细报表"""
     from starlette.responses import HTMLResponse
-    html = """<!DOCTYPE html>
+    import json
+
+    # 获取 token
+    token = authorization.replace("Bearer ", "").strip()
+    if not token:
+        token = "mock_token_valid"
+
+    # 获取插单数据
+    rush_orders = []
+    affect_orders = []
+
+    # 判断是否使用 MOCK 模式
+    if config.MOCK_MODE:
+        # MOCK 模式下直接调用本地函数
+        rush_resp = await rush_order_paging(body=BasePagingInput(current=1, pageSize=100), authorization=f"Bearer {token}")
+        affect_resp = await affect_order_paging(body=BasePagingInput(current=1, pageSize=100), authorization=f"Bearer {token}")
+        rush_orders = rush_resp.get("data", {}).get("data", [])
+        affect_orders = affect_resp.get("data", {}).get("data", [])
+    else:
+        # 生产模式通过 HTTP 调用
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                # 获取插单列表
+                rush_resp = await client.post(
+                    f"{APS_BASE_URL}/api/aps/rush-order/paging",
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={"current": 1, "pageSize": 100}
+                )
+                if rush_resp.status_code == 200:
+                    rush_data = rush_resp.json()
+                    rush_orders = rush_data.get("data", {}).get("data", [])
+
+                # 获取受影响订单
+                affect_resp = await client.post(
+                    f"{APS_BASE_URL}/api/aps/affect-order/paging",
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={"current": 1, "pageSize": 100}
+                )
+                if affect_resp.status_code == 200:
+                    affect_data = affect_resp.json()
+                    affect_orders = affect_data.get("data", {}).get("data", [])
+        except Exception:
+            pass
+
+    # 统计
+    total_rush = len(rush_orders)
+    total_affect = len(affect_orders)
+    delayed_count = sum(1 for o in affect_orders if o.get("isDelay"))
+    normal_count = total_affect - delayed_count
+
+    # 插单明细HTML
+    rush_rows = ""
+    for o in rush_orders:
+        lack_day = o.get("lackDay") or 0
+        status = "满足" if lack_day <= 0 else f"不满足，延迟{-lack_day}天" if lack_day < 0 else f"不满足，延迟{lack_day}天"
+        rush_rows += f"""
+        <tr>
+            <td>{o.get('orderCode', '')}</td>
+            <td>{o.get('rushUserFullName', '')}</td>
+            <td>{o.get('materialCode', '')}</td>
+            <td>{o.get('materialName', '')}</td>
+            <td>{o.get('customerName', '')}</td>
+            <td>{o.get('qty', 0)}</td>
+            <td>{str(o.get('expectDate', ''))[:10]}</td>
+            <td>{o.get('priority', '')}</td>
+            <td class="{'status-ok' if lack_day <= 0 else 'status-warn'}">{status}</td>
+        </tr>"""
+
+    # 受影响订单HTML
+    affect_rows = ""
+    for o in affect_orders:
+        is_delay = o.get("isDelay", False)
+        delay_day = o.get("delayDay", 0)
+        affect_rows += f"""
+        <tr>
+            <td>{o.get('orderCode', '')}</td>
+            <td>{o.get('materialName', '')}</td>
+            <td>{str(o.get('deliveryDate', ''))[:10]}</td>
+            <td>{str(o.get('originalProductScheduleEndDate', ''))[:10]}</td>
+            <td>{str(o.get('productScheduleEndDate', ''))[:10]}</td>
+            <td class="{'status-warn' if is_delay else 'status-ok'}">{o.get('affectDay', 0)}天</td>
+            <td class="{'status-warn' if is_delay else 'status-ok'}">{'+' + str(delay_day) + '天' if is_delay else '正常'}</td>
+        </tr>"""
+
+    html = f"""<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
 <title>插单评估明细报表</title>
+<style>
+    body {{ font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin: 20px; background: #f5f5f5 }}
+    h1 {{ color: #1a56db; border-bottom: 2px solid #1a56db; padding-bottom: 10px }}
+    h2 {{ color: #374151; margin-top: 30px }}
+    .summary {{ background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1) }}
+    .summary-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 15px }}
+    .summary-item {{ text-align: center }}
+    .summary-num {{ font-size: 28px; font-weight: bold; color: #1a56db }}
+    .summary-num.warn {{ color: #dc2626 }}
+    .summary-num.ok {{ color: #16a34a }}
+    .summary-label {{ color: #6b7280; font-size: 14px }}
+    table {{ width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1) }}
+    th, td {{ padding: 12px 8px; text-align: left; border-bottom: 1px solid #e5e7eb }}
+    th {{ background: #f9fafb; color: #374151; font-weight: 600 }}
+    tr:last-child td {{ border-bottom: none }}
+    .status-ok {{ color: #16a34a }}
+    .status-warn {{ color: #dc2626 }}
+    .footer {{ margin-top: 30px; text-align: center; color: #9ca3af; font-size: 12px }}
+</style>
 </head>
 <body>
 <h1>📊 插单评估明细报表</h1>
-<p>本报表由 AI中台自动生成</p>
+<p>生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+
+<div class="summary">
+    <h2>📈 总览</h2>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-num">{total_rush}</div>
+            <div class="summary-label">插单数量</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-num">{total_affect}</div>
+            <div class="summary-label">受影响订单</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-num warn">{delayed_count}</div>
+            <div class="summary-label">造成延迟</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-num ok">{normal_count}</div>
+            <div class="summary-label">未受影响</div>
+        </div>
+    </div>
+</div>
+
+<h2>📋 插单明细</h2>
+<table>
+    <thead>
+        <tr>
+            <th>插单编号</th>
+            <th>插单人员</th>
+            <th>物料编码</th>
+            <th>物料名称</th>
+            <th>客户</th>
+            <th>数量</th>
+            <th>期望交期</th>
+            <th>优先级</th>
+            <th>评估结果</th>
+        </tr>
+    </thead>
+    <tbody>
+        {rush_rows or '<tr><td colspan="9" style="text-align:center;color:#9ca3af">暂无数据</td></tr>'}
+    </tbody>
+</table>
+
+<h2>⚠️ 受影响订单</h2>
+<table>
+    <thead>
+        <tr>
+            <th>订单编号</th>
+            <th>物料名称</th>
+            <th>交期</th>
+            <th>原排产结束</th>
+            <th>新排产结束</th>
+            <th>影响天数</th>
+            <th>延迟情况</th>
+        </tr>
+    </thead>
+    <tbody>
+        {affect_rows or '<tr><td colspan="7" style="text-align:center;color:#9ca3af">暂无数据</td></tr>'}
+    </tbody>
+</table>
+
+<div class="footer">
+    <p>本报表由 AI中台自动生成 | APS 高级排程系统</p>
+</div>
 </body>
 </html>"""
     return HTMLResponse(content=html)
