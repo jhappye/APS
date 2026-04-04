@@ -199,7 +199,7 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
 
 # 3. 启动前端演示页面（可选）
 cd /opt/aps/aps-client
-python -m http.server 8002
+nohup python -m http.server 8002 > server.log 2>&1 &
 ```
 
 > ⚠️ **注意**：务必使用 `env http_proxy= https_proxy= no_proxy='*'` 取消代理，否则服务无法直连 AI服务中台。
@@ -212,6 +212,9 @@ curl http://localhost:8000/health
 
 # 根路径
 curl http://localhost:8000/
+
+# 端口占用检查
+ss -tlnp | grep -E '8000|8001|8002'
 ```
 
 ### 4.6 测试账号
